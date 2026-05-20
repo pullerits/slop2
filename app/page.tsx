@@ -1092,29 +1092,28 @@ export default function Home() {
 
               {state.quests.length === 0 ? (
                 <div className="mt-8 rounded-3xl bg-[#f5f0e0] p-6">
-                  <p className="quiet-label text-[#6a6a6a]">How quests work</p>
-                  <div className="mt-5 grid gap-4">
-                    <div className="rounded-2xl bg-[#fffaf0] p-4">
-                      <p className="font-semibold">1. Name a real goal</p>
-                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
-                        Something like learning Spanish, saving money, finishing
-                        a course, or building a portfolio.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-[#fffaf0] p-4">
-                      <p className="font-semibold">2. Add tiny milestones</p>
-                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
-                        Each milestone should be small enough that you know what
-                        to do next.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-[#fffaf0] p-4">
-                      <p className="font-semibold">3. Mark steps done</p>
-                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
-                        Completed milestones give progress to the life area you
-                        choose.
-                      </p>
-                    </div>
+                  <p className="quiet-label text-[#6a6a6a]">First quest</p>
+                  <h3 className="editorial-heading mt-3 text-3xl">
+                    Start with one bigger goal.
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[#3a3a3a]">
+                    Example: “Learn basic Spanish” with steps like “Finish
+                    lesson 1,” “Practice three days,” and “Have one short
+                    conversation.”
+                  </p>
+                  <div className="mt-5 grid gap-2 text-sm text-[#3a3a3a]">
+                    <p>
+                      <span className="font-semibold">Goal:</span> what you want
+                      to finish.
+                    </p>
+                    <p>
+                      <span className="font-semibold">Steps:</span> the small
+                      pieces you can mark done.
+                    </p>
+                    <p>
+                      <span className="font-semibold">Progress:</span> each done
+                      step grows one life area.
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -1168,31 +1167,20 @@ export default function Home() {
 
             <div className="grid content-start gap-4">
               {state.quests.length === 0 ? (
-                <div className="rounded-3xl bg-[#f5f0e0] p-8">
-                  <h3 className="editorial-heading text-3xl">
-                    Try your first quest.
+                <div className="rounded-3xl bg-[#1a3a3a] p-8 text-white">
+                  <p className="quiet-label text-white/65">Preview</p>
+                  <h3 className="editorial-heading mt-3 text-3xl">
+                    Your quest will appear here.
                   </h3>
-                  <p className="mt-3 max-w-md text-sm leading-6 text-[#3a3a3a]">
-                    Example: “Learn basic Spanish” with steps like “Finish
-                    lesson 1,” “Practice three days,” and “Have one short
-                    conversation.”
-                  </p>
-                  <div className="mt-6 rounded-2xl bg-[#fffaf0] p-4">
-                    <p className="text-sm font-semibold">Good first quests</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[
-                        "Finish a course",
-                        "Save for a trip",
-                        "Run a 5K",
-                        "Build a portfolio",
-                      ].map((example) => (
-                        <span
-                          className="rounded-full bg-[#f5f0e0] px-3 py-1 text-xs font-semibold"
-                          key={example}
-                        >
-                          {example}
-                        </span>
-                      ))}
+                  <div className="mt-6 grid gap-3">
+                    <div className="rounded-2xl bg-white/10 p-4">
+                      <p className="text-sm font-semibold">Learn basic Spanish</p>
+                      <div className="mt-3 h-2 rounded-full bg-white/20">
+                        <div className="h-full w-1/3 rounded-full bg-white" />
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 p-4 text-sm text-white/75">
+                      Finish lesson 1
                     </div>
                   </div>
                 </div>
