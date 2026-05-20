@@ -374,7 +374,7 @@ export default function Home() {
       <main className="min-h-screen bg-black px-6 py-8 text-neutral-100">
         <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-xl flex-col justify-center">
           <div className="mb-10">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">
+            <p className="quiet-label mb-4 text-amber-500">
               SCUP
             </p>
             <div className="flex gap-2" aria-label="Setup progress">
@@ -400,10 +400,10 @@ export default function Home() {
                 <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 1 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+                <h1 className="editorial-title text-5xl sm:text-6xl">
                   Make everyday tasks feel a little more rewarding.
                 </h1>
-                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
+                <p className="mt-5 text-lg leading-8 text-neutral-400">
                   Pick a few small things you want to do regularly. When you
                   mark one done, SCUP gives your character progress.
                 </p>
@@ -411,20 +411,20 @@ export default function Home() {
 
               <div className="grid gap-4">
                 <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-                  <p className="font-semibold text-neutral-100">1. Choose simple daily actions</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
+                  <p className="text-base font-semibold text-neutral-100">1. Choose simple daily actions</p>
+                  <p className="mt-1.5 text-sm leading-6 text-neutral-400">
                     Walking, reading, calling someone, or finishing one task.
                   </p>
                 </div>
                 <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-                  <p className="font-semibold text-neutral-100">2. Tap Done when you do one</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
+                  <p className="text-base font-semibold text-neutral-100">2. Tap Done when you do one</p>
+                  <p className="mt-1.5 text-sm leading-6 text-neutral-400">
                     No complicated setup. Just one button after the action.
                   </p>
                 </div>
                 <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-                  <p className="font-semibold text-neutral-100">3. Watch your progress grow</p>
-                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
+                  <p className="text-base font-semibold text-neutral-100">3. Watch your progress grow</p>
+                  <p className="mt-1.5 text-sm leading-6 text-neutral-400">
                     The app keeps score so good days feel visible.
                   </p>
                 </div>
@@ -445,10 +445,10 @@ export default function Home() {
                 <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 2 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+                <h1 className="editorial-title text-5xl sm:text-6xl">
                   First, what should we call you?
                 </h1>
-                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
+                <p className="mt-5 text-lg leading-8 text-neutral-400">
                   Your age becomes your life experience number. You can think
                   of it as the life experience you already have.
                 </p>
@@ -497,10 +497,10 @@ export default function Home() {
                 <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 3 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+                <h1 className="editorial-title text-5xl sm:text-6xl">
                   Pick a few things you want to do more often.
                 </h1>
-                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
+                <p className="mt-5 text-lg leading-8 text-neutral-400">
                   Start small. You can add your own later from the dashboard.
                 </p>
               </div>
@@ -575,10 +575,10 @@ export default function Home() {
       <div className="mx-auto w-full max-w-6xl">
         <header className="flex items-center justify-between gap-4 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">
+            <p className="quiet-label text-amber-500">
               SCUP
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            <h1 className="editorial-heading mt-1 text-3xl">
               Today for {state.profile.name}
             </h1>
           </div>
@@ -599,15 +599,15 @@ export default function Home() {
         <section className="grid gap-3 py-5 sm:grid-cols-3">
           <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
             <p className="text-sm text-neutral-400">Life experience</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">{state.profile.age}</p>
+            <p className="editorial-number mt-2 text-4xl">{state.profile.age}</p>
           </div>
           <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
             <p className="text-sm text-neutral-400">Growth level</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">{overallLevel}</p>
+            <p className="editorial-number mt-2 text-4xl">{overallLevel}</p>
           </div>
           <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
             <p className="text-sm text-neutral-400">Progress today</p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight">{xpToday}</p>
+            <p className="editorial-number mt-2 text-4xl">{xpToday}</p>
           </div>
         </section>
 
@@ -616,7 +616,7 @@ export default function Home() {
             <section>
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold tracking-tight">Your things for today</h2>
+                  <h2 className="editorial-heading text-2xl">Your things for today</h2>
                   <p className="text-sm text-neutral-400">
                     Tap Done after you do one. That is all.
                   </p>
@@ -629,7 +629,7 @@ export default function Home() {
                     <h3 className="font-semibold text-neutral-100">
                       Add one small thing to start.
                     </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-neutral-400">
+                    <p className="mt-2 text-sm leading-6 text-neutral-400">
                       A short walk, a glass of water, or ten minutes of reading
                       is enough. Keep it easy.
                     </p>
@@ -680,7 +680,7 @@ export default function Home() {
             </section>
 
             <section>
-              <h2 className="mb-4 text-xl font-semibold tracking-tight">
+              <h2 className="editorial-heading mb-4 text-2xl">
                 {editingHabitId ? "Change a daily thing" : "Add a daily thing"}
               </h2>
               <form
@@ -727,7 +727,7 @@ export default function Home() {
 
           <aside className="space-y-6">
             <section>
-              <h2 className="mb-4 text-xl font-semibold tracking-tight">Life areas</h2>
+              <h2 className="editorial-heading mb-4 text-2xl">Life areas</h2>
               <div className="grid gap-3">
                 {STAT_NAMES.map((statName) => {
                   const stat = state.stats[statName];
@@ -761,7 +761,7 @@ export default function Home() {
             </section>
 
             <section>
-              <h2 className="mb-4 text-xl font-semibold tracking-tight">Milestones</h2>
+              <h2 className="editorial-heading mb-4 text-2xl">Milestones</h2>
               <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
                 {state.achievements.length ? (
                   <div className="flex flex-wrap gap-2">
@@ -783,7 +783,7 @@ export default function Home() {
             </section>
 
             <section>
-              <h2 className="mb-4 text-xl font-semibold tracking-tight">Recent wins</h2>
+              <h2 className="editorial-heading mb-4 text-2xl">Recent wins</h2>
               <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
                 {state.activity.length ? (
                   <div className="space-y-4">
