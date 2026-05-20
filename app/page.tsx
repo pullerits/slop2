@@ -44,7 +44,6 @@ import { WorkoutView } from "../components/dashboard/WorkoutView";
 import { CalendarView } from "../components/dashboard/CalendarView";
 import { AchievementsView } from "../components/dashboard/AchievementsView";
 import { ConfettiCanvas } from "../components/ConfettiCanvas";
-import { ACHIEVEMENT_DEFS } from "../lib/achievements";
 
 export default function Home() {
   const [state, setState] = useState<AppState | null>(null);
@@ -404,6 +403,40 @@ export default function Home() {
         achievements = unlock(achievements, "levelFive");
       }
 
+      const updatedQuests = current.quests.map((item) =>
+        item.id === questId
+          ? {
+              ...item,
+              milestones: item.milestones.map((step) =>
+                step.id === milestoneId
+                  ? {
+                      ...step,
+                      completed: true,
+                    }
+                  : step,
+              ),
+            }
+          : item,
+      );
+
+      const thisQuest = updatedQuests.find((q) => q.id === questId);
+      if (thisQuest && thisQuest.milestones.every((m) => m.completed)) {
+        achievements = unlock(achievements, "questCompleter");
+      }
+
+      const updatedStats = {
+        ...current.stats,
+        [quest.stat]: {
+          ...current.stats[quest.stat],
+          xp: nextStatXp,
+        },
+      };
+      if (
+        Object.values(updatedStats).every((s) => levelFromXp(s.xp) >= 3)
+      ) {
+        achievements = unlock(achievements, "balancedLife");
+      }
+
       setNotice(`+${quest.xp} progress in ${quest.stat}`);
       setCelebratingMilestoneId(milestoneId);
       window.setTimeout(() => setNotice(""), 1800);
@@ -411,28 +444,8 @@ export default function Home() {
 
       return {
         ...current,
-        stats: {
-          ...current.stats,
-          [quest.stat]: {
-            ...current.stats[quest.stat],
-            xp: nextStatXp,
-          },
-        },
-        quests: current.quests.map((item) =>
-          item.id === questId
-            ? {
-                ...item,
-                milestones: item.milestones.map((step) =>
-                  step.id === milestoneId
-                    ? {
-                        ...step,
-                        completed: true,
-                      }
-                    : step,
-                ),
-              }
-            : item,
-        ),
+        stats: updatedStats,
+        quests: updatedQuests,
         activity: [
           {
             id: uid("activity"),
@@ -753,15 +766,22 @@ export default function Home() {
         achievements = unlock(achievements, "levelFive");
       }
 
+      const updatedStats = {
+        ...current.stats,
+        [freshWorkout.stat]: {
+          ...current.stats[freshWorkout.stat],
+          xp: nextStatXp,
+        },
+      };
+      if (
+        Object.values(updatedStats).every((s) => levelFromXp(s.xp) >= 3)
+      ) {
+        achievements = unlock(achievements, "balancedLife");
+      }
+
       return {
         ...current,
-        stats: {
-          ...current.stats,
-          [freshWorkout.stat]: {
-            ...current.stats[freshWorkout.stat],
-            xp: nextStatXp,
-          },
-        },
+        stats: updatedStats,
         workouts: current.workouts.map((w) =>
           w.id === workoutId
             ? {

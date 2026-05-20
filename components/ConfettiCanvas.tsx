@@ -54,6 +54,11 @@ export function ConfettiCanvas({ active, onDone }: ConfettiCanvasProps) {
   const animRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
   const hasStartedRef = useRef(false);
+  const onDoneRef = useRef(onDone);
+
+  // Always keep the latest callback in the ref so the loop
+  // can call it without causing effect re-runs.
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!active) {
@@ -146,7 +151,7 @@ export function ConfettiCanvas({ active, onDone }: ConfettiCanvasProps) {
 
       if (aliveCount === 0) {
         running = false;
-        onDone?.();
+        onDoneRef.current?.();
         return;
       }
 
@@ -162,7 +167,8 @@ export function ConfettiCanvas({ active, onDone }: ConfettiCanvasProps) {
         cancelAnimationFrame(animRef.current);
       }
     };
-  }, [active, onDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   if (!active) return null;
 
