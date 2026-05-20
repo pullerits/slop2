@@ -37,6 +37,8 @@ type AppState = {
   achievements: string[];
 };
 
+type OnboardingStep = "welcome" | "profile" | "habits";
+
 const STORAGE_KEY = "scup:mvp";
 const STAT_NAMES: StatName[] = [
   "Health",
@@ -47,11 +49,11 @@ const STAT_NAMES: StatName[] = [
 ];
 
 const STARTER_HABITS: Array<Pick<Habit, "title" | "stat" | "xp">> = [
-  { title: "Move for 20 minutes", stat: "Health", xp: 25 },
-  { title: "Read or study", stat: "Knowledge", xp: 20 },
-  { title: "Ship one useful task", stat: "Career", xp: 25 },
-  { title: "Reach out to someone", stat: "Social", xp: 15 },
-  { title: "Make something small", stat: "Creativity", xp: 20 },
+  { title: "Take a short walk", stat: "Health", xp: 25 },
+  { title: "Read for 10 minutes", stat: "Knowledge", xp: 20 },
+  { title: "Finish one important task", stat: "Career", xp: 25 },
+  { title: "Call or message someone", stat: "Social", xp: 15 },
+  { title: "Make or write something", stat: "Creativity", xp: 20 },
 ];
 
 const ACHIEVEMENTS = {
@@ -119,8 +121,10 @@ function unlock(achievements: string[], achievement: string) {
 export default function Home() {
   const [state, setState] = useState<AppState | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [onboardingStep, setOnboardingStep] =
+    useState<OnboardingStep>("welcome");
   const [name, setName] = useState("");
-  const [age, setAge] = useState("30");
+  const [age, setAge] = useState("");
   const [selectedHabits, setSelectedHabits] = useState<string[]>(
     STARTER_HABITS.slice(0, 3).map((habit) => habit.title),
   );
@@ -179,7 +183,7 @@ export default function Home() {
   function handleOnboarding(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleanName = name.trim() || "Player";
-    const parsedAge = Math.max(1, Number.parseInt(age, 10) || 1);
+    const parsedAge = Math.max(1, Number.parseInt(age, 10) || 30);
     setState(createInitialState(cleanName, parsedAge, selectedHabits));
   }
 
@@ -281,8 +285,14 @@ export default function Home() {
     window.localStorage.removeItem(STORAGE_KEY);
     setState(null);
     setName("");
-    setAge("30");
+    setAge("");
+    setOnboardingStep("welcome");
     setSelectedHabits(STARTER_HABITS.slice(0, 3).map((habit) => habit.title));
+  }
+
+  function goToHabitStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOnboardingStep("habits");
   }
 
   if (!isLoaded) {
@@ -292,69 +302,195 @@ export default function Home() {
   if (!state) {
     return (
       <main className="min-h-screen bg-[#10131c] px-5 py-8 text-[#f4efe4]">
-        <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-xl flex-col justify-center">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-[#d89c32]">
-            SCUP
-          </p>
-          <h1 className="text-5xl font-semibold leading-none sm:text-6xl">
-            Turn today into character progress.
-          </h1>
-          <p className="mt-5 text-base leading-7 text-[#b8b1a4]">
-            A tiny proof of concept for real-life XP, stat tracks, streaks, and
-            daily momentum.
-          </p>
-
-          <form className="mt-9 space-y-6" onSubmit={handleOnboarding}>
-            <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
-              <label className="space-y-2">
-                <span className="text-sm text-[#b8b1a4]">Name</span>
-                <input
-                  className="h-12 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-base outline-none transition focus:border-[#d89c32]"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Ralf"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-sm text-[#b8b1a4]">Age</span>
-                <input
-                  className="h-12 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-base outline-none transition focus:border-[#d89c32]"
-                  value={age}
-                  onChange={(event) => setAge(event.target.value)}
-                  inputMode="numeric"
-                />
-              </label>
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-2xl flex-col justify-center">
+          <div className="mb-8">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-[#d89c32]">
+              SCUP
+            </p>
+            <div className="flex gap-2" aria-label="Setup progress">
+              {(["welcome", "profile", "habits"] as OnboardingStep[]).map(
+                (step, index) => (
+                  <span
+                    className={`h-2 flex-1 rounded-full ${
+                      step === onboardingStep
+                        ? "bg-[#d89c32]"
+                        : "bg-white/10"
+                    }`}
+                    key={step}
+                    title={`Step ${index + 1}`}
+                  />
+                ),
+              )}
             </div>
+          </div>
 
-            <div>
-              <p className="mb-3 text-sm text-[#b8b1a4]">Starter habits</p>
-              <div className="grid gap-3">
-                {STARTER_HABITS.map((habit) => (
-                  <label
-                    className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.045] p-4"
-                    key={habit.title}
-                  >
-                    <span>
-                      <span className="block font-medium">{habit.title}</span>
-                      <span className="text-sm text-[#9c9487]">
-                        {habit.stat} · {habit.xp} XP
-                      </span>
-                    </span>
-                    <input
-                      checked={selectedHabits.includes(habit.title)}
-                      className="h-5 w-5 accent-[#d89c32]"
-                      onChange={() => toggleStarterHabit(habit.title)}
-                      type="checkbox"
-                    />
-                  </label>
-                ))}
+          {onboardingStep === "welcome" ? (
+            <div className="space-y-7">
+              <div>
+                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                  Step 1 of 3
+                </p>
+                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                  Make everyday tasks feel a little more rewarding.
+                </h1>
+                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
+                  Pick a few small things you want to do regularly. When you
+                  mark one done, SCUP gives your character progress.
+                </p>
               </div>
-            </div>
 
-            <button className="h-12 w-full rounded-lg bg-[#d89c32] px-5 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
-              Start prototype
-            </button>
-          </form>
+              <div className="grid gap-3">
+                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+                  <p className="font-semibold">1. Choose simple daily actions</p>
+                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+                    Walking, reading, calling someone, or finishing one task.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+                  <p className="font-semibold">2. Tap Done when you do one</p>
+                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+                    No complicated setup. Just one button after the action.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+                  <p className="font-semibold">3. Watch your progress grow</p>
+                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+                    The app keeps score so good days feel visible.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                className="h-13 w-full rounded-lg bg-[#d89c32] px-5 text-base font-semibold text-[#16120a] transition hover:bg-[#efb044]"
+                onClick={() => setOnboardingStep("profile")}
+              >
+                Get started
+              </button>
+            </div>
+          ) : null}
+
+          {onboardingStep === "profile" ? (
+            <form className="space-y-7" onSubmit={goToHabitStep}>
+              <div>
+                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                  Step 2 of 3
+                </p>
+                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                  First, what should we call you?
+                </h1>
+                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
+                  Your age becomes your starting prestige number. You can think
+                  of it as the life experience you already have.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                <label className="space-y-2">
+                  <span className="text-base font-medium">Your name</span>
+                  <input
+                    className="h-14 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-lg outline-none transition focus:border-[#d89c32]"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Type your name"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-base font-medium">Your age</span>
+                  <input
+                    className="h-14 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-lg outline-none transition focus:border-[#d89c32]"
+                    value={age}
+                    onChange={(event) => setAge(event.target.value)}
+                    inputMode="numeric"
+                    placeholder="For example, 42"
+                  />
+                </label>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
+                <button
+                  className="h-13 rounded-lg border border-white/10 px-5 font-semibold text-[#c9c1b4] transition hover:border-[#d89c32] hover:text-[#f4efe4]"
+                  onClick={() => setOnboardingStep("welcome")}
+                  type="button"
+                >
+                  Back
+                </button>
+                <button className="h-13 rounded-lg bg-[#d89c32] px-5 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
+                  Continue
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          {onboardingStep === "habits" ? (
+            <form className="space-y-7" onSubmit={handleOnboarding}>
+              <div>
+                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                  Step 3 of 3
+                </p>
+                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                  Pick a few things you want to do more often.
+                </h1>
+                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
+                  Start small. You can add your own later from the dashboard.
+                </p>
+              </div>
+
+              <div className="grid gap-3">
+                {STARTER_HABITS.map((habit) => {
+                  const isSelected = selectedHabits.includes(habit.title);
+
+                  return (
+                    <button
+                      className={`flex min-h-20 items-center justify-between gap-4 rounded-lg border p-4 text-left transition ${
+                        isSelected
+                          ? "border-[#d89c32] bg-[#d89c32]/10"
+                          : "border-white/10 bg-white/[0.045] hover:border-white/25"
+                      }`}
+                      key={habit.title}
+                      onClick={() => toggleStarterHabit(habit.title)}
+                      type="button"
+                    >
+                      <span>
+                        <span className="block text-lg font-semibold">
+                          {habit.title}
+                        </span>
+                        <span className="mt-1 block text-sm text-[#9c9487]">
+                          Helps your {habit.stat.toLowerCase()} progress
+                        </span>
+                      </span>
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                          isSelected
+                            ? "border-[#d89c32] bg-[#d89c32] text-[#16120a]"
+                            : "border-white/20 text-[#9c9487]"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {isSelected ? "On" : ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4 text-sm leading-6 text-[#c9c1b4]">
+                Selected: {selectedHabits.length}. Two or three is a good start.
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
+                <button
+                  className="h-13 rounded-lg border border-white/10 px-5 font-semibold text-[#c9c1b4] transition hover:border-[#d89c32] hover:text-[#f4efe4]"
+                  onClick={() => setOnboardingStep("profile")}
+                  type="button"
+                >
+                  Back
+                </button>
+                <button className="h-13 rounded-lg bg-[#d89c32] px-5 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
+                  Start my dashboard
+                </button>
+              </div>
+            </form>
+          ) : null}
         </section>
       </main>
     );
