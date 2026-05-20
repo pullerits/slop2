@@ -173,6 +173,29 @@ export default function Home() {
       .reduce((sum, item) => sum + item.xp, 0);
   }, [state]);
 
+  const completedToday = useMemo(() => {
+    if (!state) {
+      return 0;
+    }
+
+    return state.habits.filter((habit) => habit.lastCompletedDate === todayKey())
+      .length;
+  }, [state]);
+
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      }).format(new Date()),
+    [],
+  );
+
+  const dailyProgress = state?.habits.length
+    ? Math.round((completedToday / state.habits.length) * 100)
+    : 0;
+
   function toggleStarterHabit(title: string) {
     setSelectedHabits((current) =>
       current.includes(title)
@@ -579,7 +602,7 @@ export default function Home() {
               SCUP
             </p>
             <h1 className="editorial-heading mt-1 text-3xl">
-              Today for {state.profile.name}
+              {state.profile.name}
             </h1>
           </div>
           <button
@@ -596,89 +619,124 @@ export default function Home() {
           </div>
         ) : null}
 
-        <section className="grid gap-3 py-5 sm:grid-cols-3">
-          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-            <p className="text-sm text-neutral-400">Life experience</p>
-            <p className="editorial-number mt-2 text-4xl">{state.profile.age}</p>
-          </div>
-          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-            <p className="text-sm text-neutral-400">Growth level</p>
-            <p className="editorial-number mt-2 text-4xl">{overallLevel}</p>
-          </div>
-          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
-            <p className="text-sm text-neutral-400">Progress today</p>
-            <p className="editorial-number mt-2 text-4xl">{xpToday}</p>
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-6">
-            <section>
-              <div className="mb-4 flex items-end justify-between gap-3">
+        <section className="py-5">
+          <div className="rounded-[2rem] bg-neutral-950 p-5 ring-1 ring-white/[0.08] sm:p-8">
+            <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+              <div className="space-y-7">
                 <div>
-                  <h2 className="editorial-heading text-2xl">Your things for today</h2>
-                  <p className="text-sm text-neutral-400">
-                    Tap Done after you do one. That is all.
+                  <p className="quiet-label text-amber-500">{todayLabel}</p>
+                  <h2 className="editorial-title mt-3 text-6xl sm:text-7xl">
+                    Today
+                  </h2>
+                  <p className="mt-4 max-w-sm text-base leading-7 text-neutral-400">
+                    Do these small things today. The list resets tonight.
+                  </p>
+                </div>
+
+                <div className="rounded-3xl bg-black/50 p-5 ring-1 ring-white/[0.06]">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-neutral-400">Done today</p>
+                      <p className="editorial-number mt-2 text-5xl">
+                        {completedToday}/{state.habits.length}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-neutral-400">Progress earned</p>
+                      <p className="editorial-number mt-2 text-4xl">{xpToday}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-amber-500 transition-all"
+                      style={{ width: `${dailyProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-3 text-sm text-neutral-500">
+                    {completedToday === state.habits.length && state.habits.length > 0
+                      ? "Everything for today is done."
+                      : "One tap is enough after you finish something."}
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-3">
-                {state.habits.length === 0 ? (
-                  <div className="rounded-2xl bg-neutral-900/60 p-6 ring-1 ring-white/[0.06]">
-                    <h3 className="font-semibold text-neutral-100">
-                      Add one small thing to start.
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-neutral-400">
-                      A short walk, a glass of water, or ten minutes of reading
-                      is enough. Keep it easy.
-                    </p>
-                  </div>
-                ) : null}
+              <div>
+                <div className="mb-4">
+                  <h3 className="editorial-heading text-3xl">
+                    Your things for today
+                  </h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Keep it simple. Tap Done when it is finished.
+                  </p>
+                </div>
 
-                {state.habits.map((habit) => {
-                  const doneToday = habit.lastCompletedDate === todayKey();
+                <div className="grid gap-3">
+                  {state.habits.length === 0 ? (
+                    <div className="rounded-3xl bg-black/50 p-6 ring-1 ring-white/[0.06]">
+                      <h3 className="font-semibold text-neutral-100">
+                        Add one small thing to start.
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-neutral-400">
+                        A short walk, a glass of water, or ten minutes of
+                        reading is enough. Keep it easy.
+                      </p>
+                    </div>
+                  ) : null}
 
-                  return (
-                    <article
-                      className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]"
-                      key={habit.id}
-                    >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <h3 className="font-semibold text-neutral-100">{habit.title}</h3>
-                          <p className="mt-1 text-sm text-neutral-400">
-                            {habit.stat} progress · {habit.streak} day streak
-                          </p>
+                  {state.habits.map((habit) => {
+                    const doneToday = habit.lastCompletedDate === todayKey();
+
+                    return (
+                      <article
+                        className={`rounded-3xl p-5 ring-1 transition ${
+                          doneToday
+                            ? "bg-amber-500/10 ring-amber-500/20"
+                            : "bg-black/50 ring-white/[0.06]"
+                        }`}
+                        key={habit.id}
+                      >
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="font-semibold text-neutral-100">
+                              {habit.title}
+                            </h3>
+                            <p className="mt-1 text-sm text-neutral-400">
+                              {habit.stat} progress · {habit.streak} day streak
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:items-center">
+                            <button
+                              className="h-10 rounded-full bg-amber-500 px-5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+                              disabled={doneToday}
+                              onClick={() => completeHabit(habit.id)}
+                            >
+                              Done
+                            </button>
+                            <button
+                              className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-300 transition hover:bg-neutral-700"
+                              onClick={() => startEditingHabit(habit)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-500 transition hover:bg-neutral-700 hover:text-neutral-200"
+                              onClick={() => deleteHabit(habit.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:items-center">
-                          <button
-                            className="h-10 rounded-full bg-amber-500 px-5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
-                            disabled={doneToday}
-                            onClick={() => completeHabit(habit.id)}
-                          >
-                            Done
-                          </button>
-                          <button
-                            className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-300 transition hover:bg-neutral-700"
-                            onClick={() => startEditingHabit(habit)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-500 transition hover:bg-neutral-700 hover:text-neutral-200"
-                            onClick={() => deleteHabit(habit.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
-            </section>
+            </div>
+          </div>
+        </section>
 
+        <section className="grid gap-6 py-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="space-y-6">
             <section>
               <h2 className="editorial-heading mb-4 text-2xl">
                 {editingHabitId ? "Change a daily thing" : "Add a daily thing"}
@@ -726,6 +784,30 @@ export default function Home() {
           </div>
 
           <aside className="space-y-6">
+            <section>
+              <h2 className="editorial-heading mb-4 text-2xl">
+                Character snapshot
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="text-sm text-neutral-400">Life experience</p>
+                  <p className="editorial-number mt-2 text-4xl">
+                    {state.profile.age}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="text-sm text-neutral-400">Growth level</p>
+                  <p className="editorial-number mt-2 text-4xl">
+                    {overallLevel}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="text-sm text-neutral-400">Progress today</p>
+                  <p className="editorial-number mt-2 text-4xl">{xpToday}</p>
+                </div>
+              </div>
+            </section>
+
             <section>
               <h2 className="editorial-heading mb-4 text-2xl">Life areas</h2>
               <div className="grid gap-3">
