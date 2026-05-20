@@ -57,9 +57,9 @@ const STARTER_HABITS: Array<Pick<Habit, "title" | "stat" | "xp">> = [
 ];
 
 const ACHIEVEMENTS = {
-  firstHabit: "First habit completed",
+  firstHabit: "First thing done",
   threeDayStreak: "Three-day streak",
-  levelFive: "Level 5 in any stat",
+  levelFive: "Level 5 in a life area",
 };
 
 function todayKey() {
@@ -131,6 +131,7 @@ export default function Home() {
   const [habitTitle, setHabitTitle] = useState("");
   const [habitStat, setHabitStat] = useState<StatName>("Health");
   const [habitXp, setHabitXp] = useState("20");
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -220,6 +221,74 @@ export default function Home() {
     setHabitXp("20");
   }
 
+  function startEditingHabit(habit: Habit) {
+    setEditingHabitId(habit.id);
+    setHabitTitle(habit.title);
+    setHabitStat(habit.stat);
+    setHabitXp(String(habit.xp));
+  }
+
+  function cancelEditingHabit() {
+    setEditingHabitId(null);
+    setHabitTitle("");
+    setHabitStat("Health");
+    setHabitXp("20");
+  }
+
+  function saveHabit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = habitTitle.trim();
+    const xp = Math.max(5, Math.min(100, Number.parseInt(habitXp, 10) || 20));
+
+    if (!title) {
+      return;
+    }
+
+    if (!editingHabitId) {
+      addHabit(event);
+      return;
+    }
+
+    setState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        habits: current.habits.map((habit) =>
+          habit.id === editingHabitId
+            ? {
+                ...habit,
+                title,
+                stat: habitStat,
+                xp,
+              }
+            : habit,
+        ),
+      };
+    });
+
+    cancelEditingHabit();
+  }
+
+  function deleteHabit(habitId: string) {
+    setState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        habits: current.habits.filter((habit) => habit.id !== habitId),
+      };
+    });
+
+    if (editingHabitId === habitId) {
+      cancelEditingHabit();
+    }
+  }
+
   function completeHabit(habitId: string) {
     setState((current) => {
       if (!current) {
@@ -236,7 +305,7 @@ export default function Home() {
       const nextStatXp = current.stats[habit.stat].xp + habit.xp;
       const activity = {
         id: uid("activity"),
-        text: `Completed ${habit.title}`,
+        text: `Finished ${habit.title}`,
         date: new Date().toISOString(),
         xp: habit.xp,
         stat: habit.stat,
@@ -254,7 +323,7 @@ export default function Home() {
         achievements = unlock(achievements, ACHIEVEMENTS.levelFive);
       }
 
-      setNotice(`+${habit.xp} XP to ${habit.stat}`);
+      setNotice(`+${habit.xp} progress in ${habit.stat}`);
       window.setTimeout(() => setNotice(""), 1800);
 
       return {
@@ -287,6 +356,7 @@ export default function Home() {
     setName("");
     setAge("");
     setOnboardingStep("welcome");
+    cancelEditingHabit();
     setSelectedHabits(STARTER_HABITS.slice(0, 3).map((habit) => habit.title));
   }
 
@@ -296,24 +366,24 @@ export default function Home() {
   }
 
   if (!isLoaded) {
-    return <main className="min-h-screen bg-[#10131c]" />;
+    return <main className="min-h-screen bg-black" />;
   }
 
   if (!state) {
     return (
-      <main className="min-h-screen bg-[#10131c] px-5 py-8 text-[#f4efe4]">
-        <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-2xl flex-col justify-center">
-          <div className="mb-8">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.22em] text-[#d89c32]">
+      <main className="min-h-screen bg-black px-6 py-8 text-neutral-100">
+        <section className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-xl flex-col justify-center">
+          <div className="mb-10">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">
               SCUP
             </p>
             <div className="flex gap-2" aria-label="Setup progress">
               {(["welcome", "profile", "habits"] as OnboardingStep[]).map(
                 (step, index) => (
                   <span
-                    className={`h-2 flex-1 rounded-full ${
+                    className={`h-1.5 flex-1 rounded-full transition-colors ${
                       step === onboardingStep
-                        ? "bg-[#d89c32]"
+                        ? "bg-amber-500"
                         : "bg-white/10"
                     }`}
                     key={step}
@@ -325,43 +395,43 @@ export default function Home() {
           </div>
 
           {onboardingStep === "welcome" ? (
-            <div className="space-y-7">
+            <div className="space-y-8">
               <div>
-                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 1 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
                   Make everyday tasks feel a little more rewarding.
                 </h1>
-                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
+                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
                   Pick a few small things you want to do regularly. When you
                   mark one done, SCUP gives your character progress.
                 </p>
               </div>
 
-              <div className="grid gap-3">
-                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-                  <p className="font-semibold">1. Choose simple daily actions</p>
-                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+              <div className="grid gap-4">
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="font-semibold text-neutral-100">1. Choose simple daily actions</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
                     Walking, reading, calling someone, or finishing one task.
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-                  <p className="font-semibold">2. Tap Done when you do one</p>
-                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="font-semibold text-neutral-100">2. Tap Done when you do one</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
                     No complicated setup. Just one button after the action.
                   </p>
                 </div>
-                <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-                  <p className="font-semibold">3. Watch your progress grow</p>
-                  <p className="mt-1 text-sm leading-6 text-[#9c9487]">
+                <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+                  <p className="font-semibold text-neutral-100">3. Watch your progress grow</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-neutral-400">
                     The app keeps score so good days feel visible.
                   </p>
                 </div>
               </div>
 
               <button
-                className="h-13 w-full rounded-lg bg-[#d89c32] px-5 text-base font-semibold text-[#16120a] transition hover:bg-[#efb044]"
+                className="h-14 w-full rounded-full bg-amber-500 px-6 text-base font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]"
                 onClick={() => setOnboardingStep("profile")}
               >
                 Get started
@@ -370,34 +440,34 @@ export default function Home() {
           ) : null}
 
           {onboardingStep === "profile" ? (
-            <form className="space-y-7" onSubmit={goToHabitStep}>
+            <form className="space-y-8" onSubmit={goToHabitStep}>
               <div>
-                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 2 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
                   First, what should we call you?
                 </h1>
-                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
-                  Your age becomes your starting prestige number. You can think
+                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
+                  Your age becomes your life experience number. You can think
                   of it as the life experience you already have.
                 </p>
               </div>
 
-              <div className="grid gap-4">
-                <label className="space-y-2">
-                  <span className="text-base font-medium">Your name</span>
+              <div className="grid gap-5">
+                <label className="space-y-2.5">
+                  <span className="text-sm font-medium text-neutral-300">Your name</span>
                   <input
-                    className="h-14 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-lg outline-none transition focus:border-[#d89c32]"
+                    className="h-14 w-full rounded-2xl bg-neutral-900/60 px-5 text-lg outline-none ring-1 ring-white/[0.08] transition placeholder:text-neutral-600 focus:ring-amber-500/50"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Type your name"
                   />
                 </label>
-                <label className="space-y-2">
-                  <span className="text-base font-medium">Your age</span>
+                <label className="space-y-2.5">
+                  <span className="text-sm font-medium text-neutral-300">Your age</span>
                   <input
-                    className="h-14 w-full rounded-lg border border-white/10 bg-white/[0.06] px-4 text-lg outline-none transition focus:border-[#d89c32]"
+                    className="h-14 w-full rounded-2xl bg-neutral-900/60 px-5 text-lg outline-none ring-1 ring-white/[0.08] transition placeholder:text-neutral-600 focus:ring-amber-500/50"
                     value={age}
                     onChange={(event) => setAge(event.target.value)}
                     inputMode="numeric"
@@ -408,13 +478,13 @@ export default function Home() {
 
               <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                 <button
-                  className="h-13 rounded-lg border border-white/10 px-5 font-semibold text-[#c9c1b4] transition hover:border-[#d89c32] hover:text-[#f4efe4]"
+                  className="h-14 rounded-full ring-1 ring-white/[0.08] px-5 font-semibold text-neutral-300 transition hover:bg-white/[0.04] hover:text-neutral-100"
                   onClick={() => setOnboardingStep("welcome")}
                   type="button"
                 >
                   Back
                 </button>
-                <button className="h-13 rounded-lg bg-[#d89c32] px-5 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
+                <button className="h-14 rounded-full bg-amber-500 px-5 font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]">
                   Continue
                 </button>
               </div>
@@ -422,15 +492,15 @@ export default function Home() {
           ) : null}
 
           {onboardingStep === "habits" ? (
-            <form className="space-y-7" onSubmit={handleOnboarding}>
+            <form className="space-y-8" onSubmit={handleOnboarding}>
               <div>
-                <p className="mb-3 text-sm font-semibold text-[#f5c36a]">
+                <p className="mb-3 text-sm font-medium text-amber-500">
                   Step 3 of 3
                 </p>
-                <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+                <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
                   Pick a few things you want to do more often.
                 </h1>
-                <p className="mt-5 text-lg leading-8 text-[#c9c1b4]">
+                <p className="mt-5 text-lg leading-relaxed text-neutral-400">
                   Start small. You can add your own later from the dashboard.
                 </p>
               </div>
@@ -441,51 +511,55 @@ export default function Home() {
 
                   return (
                     <button
-                      className={`flex min-h-20 items-center justify-between gap-4 rounded-lg border p-4 text-left transition ${
+                      className={`flex min-h-[4.5rem] items-center justify-between gap-4 rounded-2xl p-5 text-left transition ${
                         isSelected
-                          ? "border-[#d89c32] bg-[#d89c32]/10"
-                          : "border-white/10 bg-white/[0.045] hover:border-white/25"
+                          ? "bg-amber-500/10 ring-1 ring-amber-500/30"
+                          : "bg-neutral-900/60 ring-1 ring-white/[0.06] hover:bg-neutral-800/60"
                       }`}
                       key={habit.title}
                       onClick={() => toggleStarterHabit(habit.title)}
                       type="button"
                     >
                       <span>
-                        <span className="block text-lg font-semibold">
+                        <span className="block text-base font-semibold">
                           {habit.title}
                         </span>
-                        <span className="mt-1 block text-sm text-[#9c9487]">
+                        <span className="mt-0.5 block text-sm text-neutral-400">
                           Helps your {habit.stat.toLowerCase()} progress
                         </span>
                       </span>
                       <span
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
                           isSelected
-                            ? "border-[#d89c32] bg-[#d89c32] text-[#16120a]"
-                            : "border-white/20 text-[#9c9487]"
+                            ? "border-amber-500 bg-amber-500 text-black"
+                            : "border-white/20 text-neutral-500"
                         }`}
                         aria-hidden="true"
                       >
-                        {isSelected ? "On" : ""}
+                        {isSelected ? (
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        ) : null}
                       </span>
                     </button>
                   );
                 })}
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4 text-sm leading-6 text-[#c9c1b4]">
+              <div className="rounded-2xl bg-neutral-900/60 p-5 text-sm text-neutral-400 ring-1 ring-white/[0.06]">
                 Selected: {selectedHabits.length}. Two or three is a good start.
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
                 <button
-                  className="h-13 rounded-lg border border-white/10 px-5 font-semibold text-[#c9c1b4] transition hover:border-[#d89c32] hover:text-[#f4efe4]"
+                  className="h-14 rounded-full ring-1 ring-white/[0.08] px-5 font-semibold text-neutral-300 transition hover:bg-white/[0.04] hover:text-neutral-100"
                   onClick={() => setOnboardingStep("profile")}
                   type="button"
                 >
                   Back
                 </button>
-                <button className="h-13 rounded-lg bg-[#d89c32] px-5 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
+                <button className="h-14 rounded-full bg-amber-500 px-5 font-semibold text-black transition hover:bg-amber-400 active:scale-[0.98]">
                   Start my dashboard
                 </button>
               </div>
@@ -497,19 +571,19 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#10131c] px-4 py-5 text-[#f4efe4] sm:px-6">
+    <main className="min-h-screen bg-black px-5 py-5 text-neutral-100 sm:px-8">
       <div className="mx-auto w-full max-w-6xl">
-        <header className="flex items-center justify-between gap-4 py-3">
+        <header className="flex items-center justify-between gap-4 py-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#d89c32]">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">
               SCUP
             </p>
-            <h1 className="mt-1 text-2xl font-semibold">
-              {state.profile.name}
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              Today for {state.profile.name}
             </h1>
           </div>
           <button
-            className="rounded-lg border border-white/10 px-3 py-2 text-sm text-[#b8b1a4] transition hover:border-[#d89c32] hover:text-[#f4efe4]"
+            className="rounded-full bg-neutral-900/60 px-4 py-2.5 text-sm font-medium text-neutral-400 ring-1 ring-white/[0.06] transition hover:bg-neutral-800/60 hover:text-neutral-200"
             onClick={resetPrototype}
           >
             Reset
@@ -517,62 +591,87 @@ export default function Home() {
         </header>
 
         {notice ? (
-          <div className="fixed left-1/2 top-5 z-10 -translate-x-1/2 rounded-full border border-[#d89c32]/40 bg-[#201a10] px-4 py-2 text-sm font-semibold text-[#f5c36a] shadow-2xl">
+          <div className="fixed left-1/2 top-5 z-10 -translate-x-1/2 rounded-full bg-neutral-800/90 px-5 py-2.5 text-sm font-semibold text-amber-400 shadow-2xl backdrop-blur-xl ring-1 ring-white/[0.08]">
             {notice}
           </div>
         ) : null}
 
-        <section className="grid gap-3 py-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <p className="text-sm text-[#9c9487]">Prestige</p>
-            <p className="mt-1 text-3xl font-semibold">{state.profile.age}</p>
+        <section className="grid gap-3 py-5 sm:grid-cols-3">
+          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+            <p className="text-sm text-neutral-400">Life experience</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{state.profile.age}</p>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <p className="text-sm text-[#9c9487]">Overall level</p>
-            <p className="mt-1 text-3xl font-semibold">{overallLevel}</p>
+          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+            <p className="text-sm text-neutral-400">Growth level</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{overallLevel}</p>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
-            <p className="text-sm text-[#9c9487]">XP today</p>
-            <p className="mt-1 text-3xl font-semibold">{xpToday}</p>
+          <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
+            <p className="text-sm text-neutral-400">Progress today</p>
+            <p className="mt-1 text-3xl font-semibold tracking-tight">{xpToday}</p>
           </div>
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-5">
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-6">
             <section>
-              <div className="mb-3 flex items-end justify-between gap-3">
+              <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-xl font-semibold">Today&apos;s Habits</h2>
-                  <p className="text-sm text-[#9c9487]">
-                    Complete each once per day.
+                  <h2 className="text-xl font-semibold tracking-tight">Your things for today</h2>
+                  <p className="text-sm text-neutral-400">
+                    Tap Done after you do one. That is all.
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-3">
+                {state.habits.length === 0 ? (
+                  <div className="rounded-2xl bg-neutral-900/60 p-6 ring-1 ring-white/[0.06]">
+                    <h3 className="font-semibold text-neutral-100">
+                      Add one small thing to start.
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-neutral-400">
+                      A short walk, a glass of water, or ten minutes of reading
+                      is enough. Keep it easy.
+                    </p>
+                  </div>
+                ) : null}
+
                 {state.habits.map((habit) => {
                   const doneToday = habit.lastCompletedDate === todayKey();
 
                   return (
                     <article
-                      className="rounded-lg border border-white/10 bg-[#171b27] p-4"
+                      className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]"
                       key={habit.id}
                     >
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <h3 className="font-semibold">{habit.title}</h3>
-                          <p className="mt-1 text-sm text-[#9c9487]">
-                            {habit.stat} · {habit.xp} XP · {habit.streak} day
-                            streak
+                          <h3 className="font-semibold text-neutral-100">{habit.title}</h3>
+                          <p className="mt-1 text-sm text-neutral-400">
+                            {habit.stat} progress · {habit.streak} day streak
                           </p>
                         </div>
-                        <button
-                          className="h-10 rounded-lg bg-[#d89c32] px-4 text-sm font-semibold text-[#16120a] transition hover:bg-[#efb044] disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-[#777064]"
-                          disabled={doneToday}
-                          onClick={() => completeHabit(habit.id)}
-                        >
-                          {doneToday ? "Done" : "Complete"}
-                        </button>
+                        <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:items-center">
+                          <button
+                            className="h-10 rounded-full bg-amber-500 px-5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-95 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+                            disabled={doneToday}
+                            onClick={() => completeHabit(habit.id)}
+                          >
+                            Done
+                          </button>
+                          <button
+                            className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-300 transition hover:bg-neutral-700"
+                            onClick={() => startEditingHabit(habit)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="h-10 rounded-full bg-neutral-800 px-4 text-sm font-medium text-neutral-500 transition hover:bg-neutral-700 hover:text-neutral-200"
+                            onClick={() => deleteHabit(habit.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </article>
                   );
@@ -581,19 +680,21 @@ export default function Home() {
             </section>
 
             <section>
-              <h2 className="mb-3 text-xl font-semibold">Create Habit</h2>
+              <h2 className="mb-4 text-xl font-semibold tracking-tight">
+                {editingHabitId ? "Change a daily thing" : "Add a daily thing"}
+              </h2>
               <form
-                className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.045] p-4 sm:grid-cols-[1fr_150px_100px_auto]"
-                onSubmit={addHabit}
+                className="grid gap-3 rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06] sm:grid-cols-[1fr_150px_100px_auto]"
+                onSubmit={saveHabit}
               >
                 <input
-                  className="h-11 rounded-lg border border-white/10 bg-[#10131c] px-3 outline-none transition focus:border-[#d89c32]"
+                  className="h-12 rounded-xl bg-black/40 px-4 text-sm outline-none ring-1 ring-white/[0.08] transition placeholder:text-neutral-600 focus:ring-amber-500/50"
                   onChange={(event) => setHabitTitle(event.target.value)}
-                  placeholder="Habit title"
+                  placeholder="Example: Take a short walk"
                   value={habitTitle}
                 />
                 <select
-                  className="h-11 rounded-lg border border-white/10 bg-[#10131c] px-3 outline-none transition focus:border-[#d89c32]"
+                  className="h-12 rounded-xl bg-black/40 px-4 text-sm outline-none ring-1 ring-white/[0.08] transition focus:ring-amber-500/50 appearance-none"
                   onChange={(event) => setHabitStat(event.target.value as StatName)}
                   value={habitStat}
                 >
@@ -602,21 +703,31 @@ export default function Home() {
                   ))}
                 </select>
                 <input
-                  className="h-11 rounded-lg border border-white/10 bg-[#10131c] px-3 outline-none transition focus:border-[#d89c32]"
+                  className="h-12 rounded-xl bg-black/40 px-4 text-sm outline-none ring-1 ring-white/[0.08] transition placeholder:text-neutral-600 focus:ring-amber-500/50"
                   inputMode="numeric"
+                  placeholder="20"
                   onChange={(event) => setHabitXp(event.target.value)}
                   value={habitXp}
                 />
-                <button className="h-11 rounded-lg bg-[#d89c32] px-4 font-semibold text-[#16120a] transition hover:bg-[#efb044]">
-                  Add
+                <button className="h-12 rounded-full bg-amber-500 px-5 text-sm font-semibold text-black transition hover:bg-amber-400 active:scale-95">
+                  {editingHabitId ? "Save" : "Add"}
                 </button>
+                {editingHabitId ? (
+                  <button
+                    className="h-12 rounded-full bg-neutral-800 px-5 text-sm font-semibold text-neutral-300 transition hover:bg-neutral-700 sm:col-start-4"
+                    onClick={cancelEditingHabit}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                ) : null}
               </form>
             </section>
           </div>
 
-          <aside className="space-y-5">
+          <aside className="space-y-6">
             <section>
-              <h2 className="mb-3 text-xl font-semibold">Stats</h2>
+              <h2 className="mb-4 text-xl font-semibold tracking-tight">Life areas</h2>
               <div className="grid gap-3">
                 {STAT_NAMES.map((statName) => {
                   const stat = state.stats[statName];
@@ -625,23 +736,23 @@ export default function Home() {
 
                   return (
                     <article
-                      className="rounded-lg border border-white/10 bg-white/[0.045] p-4"
+                      className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]"
                       key={stat.name}
                     >
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium">{stat.name}</h3>
-                        <span className="text-sm text-[#f5c36a]">
+                        <h3 className="font-medium text-neutral-200">{stat.name}</h3>
+                        <span className="text-sm font-medium text-amber-400">
                           Level {level}
                         </span>
                       </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
                         <div
-                          className="h-full rounded-full bg-[#d89c32]"
+                          className="h-full rounded-full bg-amber-500"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      <p className="mt-2 text-sm text-[#9c9487]">
-                        {stat.xp} XP · {100 - progress} XP to next level
+                      <p className="mt-3 text-sm text-neutral-400">
+                        {stat.xp} progress · {100 - progress} to next level
                       </p>
                     </article>
                   );
@@ -650,13 +761,13 @@ export default function Home() {
             </section>
 
             <section>
-              <h2 className="mb-3 text-xl font-semibold">Achievements</h2>
-              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+              <h2 className="mb-4 text-xl font-semibold tracking-tight">Milestones</h2>
+              <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
                 {state.achievements.length ? (
                   <div className="flex flex-wrap gap-2">
                     {state.achievements.map((achievement) => (
                       <span
-                        className="rounded-full border border-[#d89c32]/30 bg-[#d89c32]/10 px-3 py-1 text-sm text-[#f5c36a]"
+                        className="rounded-full bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-400 ring-1 ring-amber-500/20"
                         key={achievement}
                       >
                         {achievement}
@@ -664,33 +775,33 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#9c9487]">
-                    Complete a habit to unlock the first one.
+                  <p className="text-sm text-neutral-400">
+                    Finish one thing today to unlock your first milestone.
                   </p>
                 )}
               </div>
             </section>
 
             <section>
-              <h2 className="mb-3 text-xl font-semibold">Recent Activity</h2>
-              <div className="rounded-lg border border-white/10 bg-white/[0.045] p-4">
+              <h2 className="mb-4 text-xl font-semibold tracking-tight">Recent wins</h2>
+              <div className="rounded-2xl bg-neutral-900/60 p-5 ring-1 ring-white/[0.06]">
                 {state.activity.length ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {state.activity.map((item) => (
                       <div
-                        className="border-b border-white/10 pb-3 last:border-0 last:pb-0"
+                        className="border-b border-white/[0.04] pb-3 last:border-0 last:pb-0"
                         key={item.id}
                       >
-                        <p className="text-sm font-medium">{item.text}</p>
-                        <p className="mt-1 text-xs text-[#9c9487]">
-                          +{item.xp} {item.stat} XP
+                        <p className="text-sm font-medium text-neutral-200">{item.text}</p>
+                        <p className="mt-1 text-xs text-neutral-500">
+                          +{item.xp} {item.stat} progress
                         </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-[#9c9487]">
-                    Your completed habits will appear here.
+                  <p className="text-sm text-neutral-400">
+                    Things you finish will appear here.
                   </p>
                 )}
               </div>
