@@ -99,7 +99,7 @@ export function TodayView({
             <div className="mt-5 h-2 overflow-hidden rounded-full bg-[#ebe6d6]">
               <div
                 className="h-full rounded-full bg-[#ff4d8b] transition-all"
-                style={{ width: `${Math.min(100, Math.round((xpToday / dailyGoal) * 100))}%` }}
+                style={{ width: `${dailyGoal > 0 ? Math.min(100, Math.round((xpToday / dailyGoal) * 100)) : 0}%` }}
               />
             </div>
             <p className="mt-3 text-sm text-[#6a6a6a]">

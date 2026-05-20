@@ -261,16 +261,17 @@ export default function Home() {
 
       return {
         ...current,
-        habits: [
-          ...current.habits,
-          {
-            id: habitId,
-            title,
-            stat: habitStat,
-            xp,
-            streak: 0,
-          },
-        ],
+          habits: [
+            ...current.habits,
+            {
+              id: habitId,
+              title,
+              stat: habitStat,
+              xp,
+              streak: 0,
+              completedDates: [],
+            },
+          ],
       };
     });
 
@@ -830,6 +831,16 @@ export default function Home() {
     setQuestMilestones("");
     setNewHabitId(null);
     setSelectedHabits(STARTER_HABITS.slice(0, 3).map((habit) => habit.title));
+    confettiFiredToday.current = null;
+    setActiveView("today");
+    setShowConfetti(false);
+    setNotice("");
+    setPendingDelete(null);
+    setPendingWorkoutSwitch(null);
+    setCelebratingHabitId(null);
+    setCelebratingMilestoneId(null);
+    setCelebratingWorkoutId(null);
+    setDeletingItemKey(null);
   }
 
   function goToHabitStep(event: FormEvent<HTMLFormElement>) {

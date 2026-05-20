@@ -24,8 +24,8 @@ const DARK_CARD_INNER = "rounded-2xl bg-[#1a1a1a] border border-white/5";
 const ACCENT = "#ff4d8b";
 const GOLD = "#e8b94a";
 
-function RestTimer() {
-  const { formatted, isRunning, isComplete, start, secondsLeft } = useWorkoutTimer(60);
+function RestTimer({ duration = 60 }: { duration?: number }) {
+  const { formatted, isRunning, isComplete, start, secondsLeft } = useWorkoutTimer(duration);
 
   if (isComplete) {
     return (
@@ -57,7 +57,7 @@ function RestTimer() {
           <div
             className="h-full rounded-full bg-[#e8b94a] transition-all duration-1000"
             style={{
-              width: `${((60 - secondsLeft) / 60) * 100}%`,
+              width: `${duration > 0 ? ((duration - secondsLeft) / duration) * 100 : 0}%`,
             }}
           />
         </div>
@@ -167,7 +167,7 @@ function ActiveSessionView({
             between sets.
           </p>
 
-          <div className="mt-10 ${DARK_CARD_INNER} p-5">
+          <div className={`mt-10 ${DARK_CARD_INNER} p-5`}>
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-sm text-white/40">Exercises done</p>

@@ -13,9 +13,10 @@ export function XPRing({
   size = 160,
   strokeWidth = 14,
 }: XPRingProps) {
+  const safeGoal = goal > 0 ? goal : 1;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(1, Math.max(0, current / goal));
+  const progress = Math.min(1, Math.max(0, current / safeGoal));
   const dashOffset = circumference * (1 - progress);
   const isComplete = progress >= 1;
 

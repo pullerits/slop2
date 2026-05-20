@@ -20,7 +20,8 @@ export function AchievementGrid({ state }: AchievementGridProps) {
         {ACHIEVEMENT_DEFS.map((def) => {
           const unlocked = state.achievements.includes(def.id);
           const progress = def.getProgress(state);
-          const pct = Math.min(100, Math.round((progress / def.maxProgress) * 100));
+          const safeMax = def.maxProgress > 0 ? def.maxProgress : 1;
+          const pct = Math.min(100, Math.round((progress / safeMax) * 100));
 
           return (
             <article

@@ -143,8 +143,9 @@ export function QuestsView({
           const completed = quest.milestones.filter(
             (milestone) => milestone.completed,
           ).length;
+          const totalMilestones = quest.milestones.length || 1;
           const progress = Math.round(
-            (completed / quest.milestones.length) * 100,
+            (completed / totalMilestones) * 100,
           );
           const isDeleting = deletingItemKey === itemKey("quest", quest.id);
 

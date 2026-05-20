@@ -71,11 +71,11 @@ export function ProgressViewRight({
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#ebe6d6]">
                 <div
                   className={`h-full rounded-full ${STAT_PROGRESS_CLASSES[stat.name]}`}
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
               </div>
               <p className="mt-3 text-sm text-[#6a6a6a]">
-                {stat.xp} progress / {100 - progress} to next level
+                {progress} progress / {Math.max(0, 100 - progress)} to next level
               </p>
             </article>
           );
