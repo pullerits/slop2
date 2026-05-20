@@ -326,6 +326,21 @@ export default function Home() {
     ? Math.round((completedToday / state.habits.length) * 100)
     : 0;
   const dayStatus = useMemo(() => getDayStatus(now), [now]);
+  const nextQuestSteps = useMemo(() => {
+    if (!state) {
+      return [];
+    }
+
+    return state.quests
+      .map((quest) => {
+        const milestone = quest.milestones.find((step) => !step.completed);
+        return milestone ? { quest, milestone } : null;
+      })
+      .filter((item): item is { quest: Quest; milestone: QuestMilestone } =>
+        Boolean(item),
+      )
+      .slice(0, 2);
+  }, [state]);
 
   function toggleStarterHabit(title: string) {
     setSelectedHabits((current) =>
@@ -1021,6 +1036,44 @@ export default function Home() {
                     </article>
                   );
                 })}
+
+                {nextQuestSteps.length ? (
+                  <div className="mt-4 rounded-2xl bg-white/10 p-5">
+                    <p className="text-sm font-semibold text-white/70">
+                      One step toward a bigger goal
+                    </p>
+                    <div className="mt-3 grid gap-3">
+                      {nextQuestSteps.map(({ quest, milestone }) => (
+                        <article
+                          className="rounded-2xl bg-white p-4 text-[#0a0a0a]"
+                          key={`${quest.id}-${milestone.id}`}
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <h4 className="font-semibold">
+                                {milestone.title}
+                              </h4>
+                              <p className="mt-1 text-sm text-[#6a6a6a]">
+                                From: {quest.title}
+                              </p>
+                            </div>
+                            <button
+                              className="h-10 rounded-xl bg-[#0a0a0a] px-4 text-sm font-semibold text-white"
+                              onClick={() =>
+                                completeQuestMilestone(quest.id, milestone.id)
+                              }
+                            >
+                              Done
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                    <p className="mt-3 text-xs leading-5 text-white/60">
+                      These are optional today. Daily things stay separate.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
