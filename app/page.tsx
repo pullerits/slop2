@@ -53,7 +53,13 @@ type AppState = {
 };
 
 type OnboardingStep = "welcome" | "profile" | "habits";
-type DashboardView = "today" | "quests" | "progress" | "activity" | "pricing";
+type DashboardView =
+  | "today"
+  | "quests"
+  | "progress"
+  | "activity"
+  | "pricing"
+  | "profile";
 
 const STORAGE_KEY = "scup:mvp";
 const STAT_NAMES: StatName[] = [
@@ -869,6 +875,7 @@ export default function Home() {
             ["progress", "Progress"],
             ["activity", "Activity"],
             ["pricing", "Pricing"],
+            ["profile", "Profile"],
           ].map(([view, label]) => (
             <button
               className={`h-10 min-w-28 rounded-xl px-4 text-sm font-semibold ${
@@ -1025,9 +1032,39 @@ export default function Home() {
             <div>
               <h2 className="editorial-title text-5xl sm:text-6xl">Quests</h2>
               <p className="mt-4 max-w-md text-base leading-7 text-[#3a3a3a]">
-                Use quests for bigger goals. Break one goal into a few simple
-                steps, then finish the steps over time.
+                A quest is a bigger goal that takes more than one day. Break it
+                into small steps, finish the steps one by one, and earn progress
+                as the goal moves forward.
               </p>
+
+              {state.quests.length === 0 ? (
+                <div className="mt-8 rounded-3xl bg-[#f5f0e0] p-6">
+                  <p className="quiet-label text-[#6a6a6a]">How quests work</p>
+                  <div className="mt-5 grid gap-4">
+                    <div className="rounded-2xl bg-[#fffaf0] p-4">
+                      <p className="font-semibold">1. Name a real goal</p>
+                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
+                        Something like learning Spanish, saving money, finishing
+                        a course, or building a portfolio.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-[#fffaf0] p-4">
+                      <p className="font-semibold">2. Add tiny milestones</p>
+                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
+                        Each milestone should be small enough that you know what
+                        to do next.
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-[#fffaf0] p-4">
+                      <p className="font-semibold">3. Mark steps done</p>
+                      <p className="mt-1 text-sm leading-6 text-[#3a3a3a]">
+                        Completed milestones give progress to the life area you
+                        choose.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               <form
                 className="mt-8 grid gap-4 rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5"
@@ -1080,12 +1117,31 @@ export default function Home() {
               {state.quests.length === 0 ? (
                 <div className="rounded-3xl bg-[#f5f0e0] p-8">
                   <h3 className="editorial-heading text-3xl">
-                    No quests yet.
+                    Try your first quest.
                   </h3>
                   <p className="mt-3 max-w-md text-sm leading-6 text-[#3a3a3a]">
-                    Start with one goal that would feel meaningful this month.
-                    Keep the milestones small enough to actually finish.
+                    Example: “Learn basic Spanish” with steps like “Finish
+                    lesson 1,” “Practice three days,” and “Have one short
+                    conversation.”
                   </p>
+                  <div className="mt-6 rounded-2xl bg-[#fffaf0] p-4">
+                    <p className="text-sm font-semibold">Good first quests</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[
+                        "Finish a course",
+                        "Save for a trip",
+                        "Run a 5K",
+                        "Build a portfolio",
+                      ].map((example) => (
+                        <span
+                          className="rounded-full bg-[#f5f0e0] px-3 py-1 text-xs font-semibold"
+                          key={example}
+                        >
+                          {example}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
@@ -1288,7 +1344,116 @@ export default function Home() {
           </section>
         ) : null}
 
-        {activeView !== "pricing" && activeView !== "quests" ? (
+        {activeView === "profile" ? (
+          <section className="py-8">
+            <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+              <div className="rounded-3xl bg-[#ffb084] p-6 sm:p-8">
+                <p className="quiet-label text-[#3a3a3a]">Player profile</p>
+                <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center">
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-[#0a0a0a] text-4xl font-semibold text-white">
+                    {state.profile.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <h2 className="editorial-title text-5xl">
+                      {state.profile.name}
+                    </h2>
+                    <p className="mt-2 text-sm font-semibold text-[#3a3a3a]">
+                      Level {overallLevel} / {state.profile.age} life experience
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-10 grid grid-cols-3 gap-3">
+                  <div className="rounded-2xl bg-[#fffaf0] p-4">
+                    <p className="text-xs font-semibold text-[#6a6a6a]">Habits</p>
+                    <p className="editorial-number mt-2 text-3xl">
+                      {state.habits.length}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#fffaf0] p-4">
+                    <p className="text-xs font-semibold text-[#6a6a6a]">Quests</p>
+                    <p className="editorial-number mt-2 text-3xl">
+                      {state.quests.length}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#fffaf0] p-4">
+                    <p className="text-xs font-semibold text-[#6a6a6a]">Badges</p>
+                    <p className="editorial-number mt-2 text-3xl">
+                      {state.achievements.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-6">
+                <section className="rounded-3xl bg-[#f5f0e0] p-6 sm:p-8">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="quiet-label text-[#6a6a6a]">Account</p>
+                      <h3 className="editorial-heading mt-3 text-3xl">
+                        Local-first profile
+                      </h3>
+                    </div>
+                    <span className="rounded-full bg-[#a4d4c5] px-3 py-1 text-xs font-semibold text-[#0a0a0a]">
+                      Browser saved
+                    </span>
+                  </div>
+
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5">
+                      <p className="text-sm text-[#6a6a6a]">Display name</p>
+                      <p className="mt-2 font-semibold">{state.profile.name}</p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5">
+                      <p className="text-sm text-[#6a6a6a]">Plan</p>
+                      <p className="mt-2 font-semibold">Starter</p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5">
+                      <p className="text-sm text-[#6a6a6a]">Daily progress</p>
+                      <p className="mt-2 font-semibold">{dailyProgress}% complete</p>
+                    </div>
+                    <div className="rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5">
+                      <p className="text-sm text-[#6a6a6a]">Today earned</p>
+                      <p className="mt-2 font-semibold">{xpToday} progress</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-3xl bg-[#1a3a3a] p-6 text-white sm:p-8">
+                  <p className="quiet-label text-white/65">Active routine</p>
+                  <div className="mt-5 grid gap-3">
+                    {state.habits.length ? (
+                      state.habits.map((habit) => (
+                        <div
+                          className="flex items-center justify-between gap-4 rounded-2xl bg-white/10 p-4"
+                          key={habit.id}
+                        >
+                          <div>
+                            <p className="font-semibold">{habit.title}</p>
+                            <p className="mt-1 text-sm text-white/65">
+                              {habit.stat} / {habit.xp} progress
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+                            {habit.streak} day
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-white/70">
+                        Add a daily thing from Today to build a routine.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeView !== "pricing" &&
+        activeView !== "quests" &&
+        activeView !== "profile" ? (
         <section
           className={`grid gap-6 py-6 ${
             activeView === "today" ? "" : "lg:grid-cols-2"
