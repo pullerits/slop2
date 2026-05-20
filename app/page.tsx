@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type StatName = "Health" | "Knowledge" | "Career" | "Social" | "Creativity";
 
@@ -60,6 +60,10 @@ type DashboardView =
   | "activity"
   | "pricing"
   | "profile";
+type PendingDelete =
+  | { kind: "habit"; id: string; title: string }
+  | { kind: "quest"; id: string; title: string };
+type ItemKey = `habit:${string}` | `quest:${string}`;
 
 const STORAGE_KEY = "scup:mvp";
 const STAT_NAMES: StatName[] = [
@@ -252,6 +256,19 @@ export default function Home() {
   const [activeView, setActiveView] = useState<DashboardView>("today");
   const [now, setNow] = useState(() => new Date());
   const [notice, setNotice] = useState("");
+  const [celebratingHabitId, setCelebratingHabitId] = useState<string | null>(
+    null,
+  );
+  const [celebratingMilestoneId, setCelebratingMilestoneId] = useState<
+    string | null
+  >(null);
+  const [newHabitId, setNewHabitId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
+    null,
+  );
+  const [deletingItemKey, setDeletingItemKey] = useState<ItemKey | null>(null);
+  const deleteButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const keepDeleteButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -280,6 +297,48 @@ export default function Home() {
 
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!pendingDelete) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [pendingDelete]);
+
+  useEffect(() => {
+    if (!pendingDelete) {
+      return;
+    }
+
+    const { kind, id } = pendingDelete;
+    const frame = window.requestAnimationFrame(() => {
+      keepDeleteButtonRef.current?.focus();
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setPendingDelete(null);
+        const key = `${kind}:${id}`;
+        window.setTimeout(() => {
+          deleteButtonRefs.current[key]?.focus();
+        }, 0);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pendingDelete]);
 
   const overallLevel = useMemo(() => {
     if (!state) {
@@ -366,6 +425,8 @@ export default function Home() {
       return;
     }
 
+    const habitId = uid("habit");
+
     setState((current) => {
       if (!current) {
         return current;
@@ -376,7 +437,7 @@ export default function Home() {
         habits: [
           ...current.habits,
           {
-            id: uid("habit"),
+            id: habitId,
             title,
             stat: habitStat,
             xp,
@@ -386,6 +447,8 @@ export default function Home() {
       };
     });
 
+    setNewHabitId(habitId);
+    window.setTimeout(() => setNewHabitId(null), 800);
     setHabitTitle("");
     setHabitXp("20");
   }
@@ -441,21 +504,8 @@ export default function Home() {
     cancelEditingHabit();
   }
 
-  function deleteHabit(habitId: string) {
-    setState((current) => {
-      if (!current) {
-        return current;
-      }
-
-      return {
-        ...current,
-        habits: current.habits.filter((habit) => habit.id !== habitId),
-      };
-    });
-
-    if (editingHabitId === habitId) {
-      cancelEditingHabit();
-    }
+  function requestDeleteHabit(habitId: string, title: string) {
+    setPendingDelete({ kind: "habit", id: habitId, title });
   }
 
   function addQuest(event: FormEvent<HTMLFormElement>) {
@@ -527,7 +577,9 @@ export default function Home() {
       }
 
       setNotice(`+${quest.xp} progress in ${quest.stat}`);
+      setCelebratingMilestoneId(milestoneId);
       window.setTimeout(() => setNotice(""), 1800);
+      window.setTimeout(() => setCelebratingMilestoneId(null), 900);
 
       return {
         ...current,
@@ -568,17 +620,72 @@ export default function Home() {
     });
   }
 
-  function deleteQuest(questId: string) {
-    setState((current) => {
-      if (!current) {
-        return current;
+  function requestDeleteQuest(questId: string, title: string) {
+    setPendingDelete({ kind: "quest", id: questId, title });
+  }
+
+  function itemKey(kind: PendingDelete["kind"], id: string): ItemKey {
+    return `${kind}:${id}`;
+  }
+
+  function focusDeleteTrigger(kind: PendingDelete["kind"], id: string) {
+    const key = itemKey(kind, id);
+    window.setTimeout(() => {
+      deleteButtonRefs.current[key]?.focus();
+    }, 0);
+  }
+
+  function closeDeleteDialog() {
+    if (!pendingDelete) {
+      return;
+    }
+
+    const { kind, id } = pendingDelete;
+    setPendingDelete(null);
+    focusDeleteTrigger(kind, id);
+  }
+
+  function confirmDelete() {
+    if (!pendingDelete) {
+      return;
+    }
+
+    const deletion = pendingDelete;
+    const key = itemKey(deletion.kind, deletion.id);
+    setPendingDelete(null);
+    setDeletingItemKey(key);
+
+    window.setTimeout(() => {
+      if (deletion.kind === "habit") {
+        setState((current) => {
+          if (!current) {
+            return current;
+          }
+
+          return {
+            ...current,
+            habits: current.habits.filter((habit) => habit.id !== deletion.id),
+          };
+        });
+
+        if (editingHabitId === deletion.id) {
+          cancelEditingHabit();
+        }
+      } else {
+        setState((current) => {
+          if (!current) {
+            return current;
+          }
+
+          return {
+            ...current,
+            quests: current.quests.filter((quest) => quest.id !== deletion.id),
+          };
+        });
       }
 
-      return {
-        ...current,
-        quests: current.quests.filter((quest) => quest.id !== questId),
-      };
-    });
+      setDeletingItemKey(null);
+    }, 260);
   }
 
   function completeHabit(habitId: string) {
@@ -616,7 +723,9 @@ export default function Home() {
       }
 
       setNotice(`+${habit.xp} progress in ${habit.stat}`);
+      setCelebratingHabitId(habitId);
       window.setTimeout(() => setNotice(""), 1800);
+      window.setTimeout(() => setCelebratingHabitId(null), 900);
 
       return {
         ...current,
@@ -652,6 +761,7 @@ export default function Home() {
     setQuestTitle("");
     setQuestStat("Knowledge");
     setQuestMilestones("");
+    setNewHabitId(null);
     setSelectedHabits(STARTER_HABITS.slice(0, 3).map((habit) => habit.title));
   }
 
@@ -726,12 +836,14 @@ export default function Home() {
                   ))}
                 </div>
 
-                <button
-                  className="button-primary h-11 rounded-xl px-5 text-sm font-semibold"
-                  onClick={() => setOnboardingStep("profile")}
-                >
-                  Get started
-                </button>
+                <div className="flex justify-center sm:justify-start">
+                  <button
+                    className="button-primary h-11 w-full max-w-xs rounded-xl px-5 text-sm font-semibold sm:w-auto sm:max-w-none"
+                    onClick={() => setOnboardingStep("profile")}
+                  >
+                    Get started
+                  </button>
+                </div>
               </div>
             ) : null}
 
@@ -912,6 +1024,69 @@ export default function Home() {
           </div>
         ) : null}
 
+        {pendingDelete ? (
+          <div
+            className="confirm-backdrop fixed inset-0 z-20 flex items-end justify-center bg-[rgba(10,10,10,0.42)] px-4 py-6 sm:items-center"
+            onClick={closeDeleteDialog}
+          >
+            <div
+              className="confirm-dialog w-full max-w-md rounded-[28px] bg-[#fffaf0] p-6 text-[#0a0a0a] shadow-[0_32px_80px_rgba(10,10,10,0.24)] sm:p-7"
+              onClick={(event) => event.stopPropagation()}
+              aria-describedby="confirm-delete-description"
+              aria-labelledby="confirm-delete-title"
+              aria-modal="true"
+              role="dialog"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ffede3] text-xl">
+                  !
+                </div>
+                <div>
+                  <p className="quiet-label text-[#6a6a6a]">Confirm delete</p>
+                  <h3
+                    className="editorial-heading mt-2 text-3xl leading-none"
+                    id="confirm-delete-title"
+                  >
+                    Delete this {pendingDelete.kind}?
+                  </h3>
+                  <p
+                    className="mt-3 text-sm leading-6 text-[#3a3a3a]"
+                    id="confirm-delete-description"
+                  >
+                    <span className="font-semibold text-[#0a0a0a]">
+                      {pendingDelete.title}
+                    </span>{" "}
+                    will be removed from your tracker.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl bg-[#f5f0e0] p-4 text-sm leading-6 text-[#3a3a3a]">
+                Progress already earned stays on your profile, but this item and
+                its future check-ins will be gone.
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  className="button-secondary h-11 rounded-xl border border-[#e5e5e5] bg-[#fffaf0] px-4 text-sm font-semibold"
+                  onClick={closeDeleteDialog}
+                  ref={keepDeleteButtonRef}
+                  type="button"
+                >
+                  Keep it
+                </button>
+                <button
+                  className="h-11 rounded-xl bg-[#ff6b5a] px-4 text-sm font-semibold text-white hover:bg-[#ef5846]"
+                  onClick={confirmDelete}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {activeView === "today" ? (
         <section className="py-8">
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
@@ -994,10 +1169,17 @@ export default function Home() {
 
                 {state.habits.map((habit) => {
                   const doneToday = habit.lastCompletedDate === todayKey();
+                  const justCompleted = celebratingHabitId === habit.id;
+                  const justAdded = newHabitId === habit.id;
+                  const isDeleting = deletingItemKey === itemKey("habit", habit.id);
 
                   return (
                     <article
-                      className={`rounded-2xl p-5 ${
+                      className={`relative overflow-hidden rounded-2xl p-5 ${
+                        justCompleted ? "completion-pop" : ""
+                      } ${justAdded ? "task-enter" : ""} ${
+                        isDeleting ? "task-exit" : ""
+                      } ${
                         doneToday
                           ? "done-card bg-[#a4d4c5] text-[#0a0a0a]"
                           : "bg-white/10 text-white"
@@ -1013,11 +1195,23 @@ export default function Home() {
                         </div>
                         <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0 sm:items-center">
                           <button
-                            className="button-on-dark h-10 rounded-xl bg-white px-4 text-sm font-semibold text-[#0a0a0a] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/45"
+                            className={`button-on-dark h-10 rounded-xl bg-white px-4 text-sm font-semibold text-[#0a0a0a] disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/45 ${
+                              justCompleted ? "done-button-pop" : ""
+                            }`}
                             disabled={doneToday}
                             onClick={() => completeHabit(habit.id)}
                           >
-                            Done
+                            {doneToday ? (
+                              <span className="inline-flex items-center gap-2">
+                                <span
+                                  aria-hidden="true"
+                                  className="completion-check"
+                                />
+                                Done
+                              </span>
+                            ) : (
+                              "Done"
+                            )}
                           </button>
                           <button
                             className="button-ghost-dark h-10 rounded-xl bg-white/15 px-4 text-sm font-semibold"
@@ -1027,7 +1221,13 @@ export default function Home() {
                           </button>
                           <button
                             className="button-ghost-dark h-10 rounded-xl bg-white/15 px-4 text-sm font-semibold"
-                            onClick={() => deleteHabit(habit.id)}
+                            onClick={() =>
+                              requestDeleteHabit(habit.id, habit.title)
+                            }
+                            ref={(node) => {
+                              deleteButtonRefs.current[itemKey("habit", habit.id)] =
+                                node;
+                            }}
                           >
                             Delete
                           </button>
@@ -1193,10 +1393,13 @@ export default function Home() {
                 const progress = Math.round(
                   (completed / quest.milestones.length) * 100,
                 );
+                const isDeleting = deletingItemKey === itemKey("quest", quest.id);
 
                 return (
                   <article
-                    className={`rounded-3xl p-5 ${STAT_CARD_CLASSES[quest.stat]}`}
+                    className={`rounded-3xl p-5 ${
+                      isDeleting ? "task-exit" : ""
+                    } ${STAT_CARD_CLASSES[quest.stat]}`}
                     key={quest.id}
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1213,7 +1416,13 @@ export default function Home() {
                       </div>
                       <button
                         className="h-10 rounded-xl bg-white/25 px-4 text-sm font-semibold"
-                        onClick={() => deleteQuest(quest.id)}
+                        onClick={() =>
+                          requestDeleteQuest(quest.id, quest.title)
+                        }
+                        ref={(node) => {
+                          deleteButtonRefs.current[itemKey("quest", quest.id)] =
+                            node;
+                        }}
                       >
                         Delete
                       </button>
@@ -1227,29 +1436,50 @@ export default function Home() {
                     </div>
 
                     <div className="mt-5 grid gap-2">
-                      {quest.milestones.map((milestone) => (
-                        <div
-                          className="flex items-center justify-between gap-3 rounded-2xl bg-white/20 p-3"
-                          key={milestone.id}
-                        >
-                          <span
-                            className={`text-sm font-semibold ${
-                              milestone.completed ? "line-through opacity-60" : ""
+                      {quest.milestones.map((milestone) => {
+                        const justCompleted =
+                          celebratingMilestoneId === milestone.id;
+
+                        return (
+                          <div
+                            className={`relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl bg-white/20 p-3 ${
+                              justCompleted ? "completion-pop" : ""
                             }`}
+                            key={milestone.id}
                           >
-                            {milestone.title}
-                          </span>
-                          <button
-                            className="h-9 shrink-0 rounded-xl bg-white px-3 text-sm font-semibold text-[#0a0a0a] disabled:bg-white/30 disabled:text-current"
-                            disabled={milestone.completed}
-                            onClick={() =>
-                              completeQuestMilestone(quest.id, milestone.id)
-                            }
-                          >
-                            {milestone.completed ? "Done" : `+${quest.xp}`}
-                          </button>
-                        </div>
-                      ))}
+                            <span
+                              className={`text-sm font-semibold ${
+                                milestone.completed
+                                  ? "line-through opacity-60"
+                                  : ""
+                              }`}
+                            >
+                              {milestone.title}
+                            </span>
+                            <button
+                              className={`h-9 shrink-0 rounded-xl bg-white px-3 text-sm font-semibold text-[#0a0a0a] disabled:bg-white/30 disabled:text-current ${
+                                justCompleted ? "done-button-pop" : ""
+                              }`}
+                              disabled={milestone.completed}
+                              onClick={() =>
+                                completeQuestMilestone(quest.id, milestone.id)
+                              }
+                            >
+                              {milestone.completed ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <span
+                                    aria-hidden="true"
+                                    className="completion-check"
+                                  />
+                                  Done
+                                </span>
+                              ) : (
+                                `+${quest.xp}`
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </article>
                 );
