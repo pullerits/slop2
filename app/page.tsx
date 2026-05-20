@@ -84,6 +84,28 @@ function progressToNextLevel(xp: number) {
   return xp % 100;
 }
 
+function getDayStatus(now: Date) {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(now);
+  end.setHours(24, 0, 0, 0);
+
+  const totalMs = end.getTime() - start.getTime();
+  const elapsedMs = now.getTime() - start.getTime();
+  const remainingMs = Math.max(0, end.getTime() - now.getTime());
+  const hoursLeft = Math.floor(remainingMs / 3_600_000);
+  const minutesLeft = Math.floor((remainingMs % 3_600_000) / 60_000);
+
+  return {
+    dayProgress: Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100)),
+    timeLeft:
+      hoursLeft > 0
+        ? `${hoursLeft}h ${minutesLeft}m left today`
+        : `${minutesLeft}m left today`,
+  };
+}
+
 function createStats(): Record<StatName, Stat> {
   return STAT_NAMES.reduce(
     (stats, name) => ({
@@ -132,6 +154,7 @@ export default function Home() {
   const [habitStat, setHabitStat] = useState<StatName>("Health");
   const [habitXp, setHabitXp] = useState("20");
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -153,6 +176,14 @@ export default function Home() {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
   }, [state]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   const overallLevel = useMemo(() => {
     if (!state) {
@@ -195,6 +226,7 @@ export default function Home() {
   const dailyProgress = state?.habits.length
     ? Math.round((completedToday / state.habits.length) * 100)
     : 0;
+  const dayStatus = useMemo(() => getDayStatus(now), [now]);
 
   function toggleStarterHabit(title: string) {
     setSelectedHabits((current) =>
@@ -630,6 +662,29 @@ export default function Home() {
                   </h2>
                   <p className="mt-4 max-w-sm text-base leading-7 text-neutral-400">
                     Do these small things today. The list resets tonight.
+                  </p>
+                </div>
+
+                <div className="rounded-3xl bg-black/50 p-5 ring-1 ring-white/[0.06]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-neutral-400">Day progress</p>
+                      <p className="mt-1 text-base font-medium text-neutral-100">
+                        {dayStatus.timeLeft}
+                      </p>
+                    </div>
+                    <p className="text-sm text-neutral-500">
+                      {Math.round(dayStatus.dayProgress)}%
+                    </p>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-neutral-500 transition-all"
+                      style={{ width: `${dayStatus.dayProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-3 text-sm text-neutral-500">
+                    A gentle reminder of how much today is still open.
                   </p>
                 </div>
 
