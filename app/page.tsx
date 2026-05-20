@@ -13,6 +13,20 @@ type Habit = {
   lastCompletedDate?: string;
 };
 
+type QuestMilestone = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
+
+type Quest = {
+  id: string;
+  title: string;
+  stat: StatName;
+  xp: number;
+  milestones: QuestMilestone[];
+};
+
 type Stat = {
   name: StatName;
   xp: number;
@@ -33,12 +47,13 @@ type AppState = {
   };
   stats: Record<StatName, Stat>;
   habits: Habit[];
+  quests: Quest[];
   activity: Activity[];
   achievements: string[];
 };
 
 type OnboardingStep = "welcome" | "profile" | "habits";
-type DashboardView = "today" | "progress" | "activity";
+type DashboardView = "today" | "quests" | "progress" | "activity" | "pricing";
 
 const STORAGE_KEY = "scup:mvp";
 const STAT_NAMES: StatName[] = [
@@ -60,6 +75,8 @@ const STARTER_HABITS: Array<Pick<Habit, "title" | "stat" | "xp">> = [
 const ACHIEVEMENTS = {
   firstHabit: "First thing done",
   threeDayStreak: "Three-day streak",
+  firstQuest: "First quest created",
+  firstQuestMilestone: "First quest step done",
   levelFive: "Level 5 in a life area",
 };
 
@@ -146,6 +163,7 @@ function createInitialState(name: string, age: number, habitTitles: string[]) {
       id: uid("habit"),
       streak: 0,
     })),
+    quests: [],
     activity: [],
     achievements: [],
   };
@@ -155,6 +173,13 @@ function unlock(achievements: string[], achievement: string) {
   return achievements.includes(achievement)
     ? achievements
     : [achievement, ...achievements];
+}
+
+function normalizeState(saved: AppState) {
+  return {
+    ...saved,
+    quests: saved.quests ?? [],
+  };
 }
 
 function BrandMark() {
@@ -215,6 +240,9 @@ export default function Home() {
   const [habitStat, setHabitStat] = useState<StatName>("Health");
   const [habitXp, setHabitXp] = useState("20");
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [questTitle, setQuestTitle] = useState("");
+  const [questStat, setQuestStat] = useState<StatName>("Knowledge");
+  const [questMilestones, setQuestMilestones] = useState("");
   const [activeView, setActiveView] = useState<DashboardView>("today");
   const [now, setNow] = useState(() => new Date());
   const [notice, setNotice] = useState("");
@@ -224,7 +252,7 @@ export default function Home() {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
-          setState(JSON.parse(saved));
+          setState(normalizeState(JSON.parse(saved)));
         } catch {
           window.localStorage.removeItem(STORAGE_KEY);
         }
@@ -409,6 +437,129 @@ export default function Home() {
     }
   }
 
+  function addQuest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = questTitle.trim();
+    const milestones = questMilestones
+      .split("\n")
+      .map((milestone) => milestone.trim())
+      .filter(Boolean)
+      .slice(0, 6);
+
+    if (!title || milestones.length === 0) {
+      return;
+    }
+
+    setState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        quests: [
+          ...current.quests,
+          {
+            id: uid("quest"),
+            title,
+            stat: questStat,
+            xp: 35,
+            milestones: milestones.map((milestone) => ({
+              id: uid("milestone"),
+              title: milestone,
+              completed: false,
+            })),
+          },
+        ],
+        achievements: unlock(current.achievements, ACHIEVEMENTS.firstQuest),
+      };
+    });
+
+    setQuestTitle("");
+    setQuestStat("Knowledge");
+    setQuestMilestones("");
+  }
+
+  function completeQuestMilestone(questId: string, milestoneId: string) {
+    setState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const quest = current.quests.find((item) => item.id === questId);
+      const milestone = quest?.milestones.find(
+        (item) => item.id === milestoneId,
+      );
+
+      if (!quest || !milestone || milestone.completed) {
+        return current;
+      }
+
+      const nextStatXp = current.stats[quest.stat].xp + quest.xp;
+      let achievements = unlock(
+        current.achievements,
+        ACHIEVEMENTS.firstQuestMilestone,
+      );
+
+      if (levelFromXp(nextStatXp) >= 5) {
+        achievements = unlock(achievements, ACHIEVEMENTS.levelFive);
+      }
+
+      setNotice(`+${quest.xp} progress in ${quest.stat}`);
+      window.setTimeout(() => setNotice(""), 1800);
+
+      return {
+        ...current,
+        stats: {
+          ...current.stats,
+          [quest.stat]: {
+            ...current.stats[quest.stat],
+            xp: nextStatXp,
+          },
+        },
+        quests: current.quests.map((item) =>
+          item.id === questId
+            ? {
+                ...item,
+                milestones: item.milestones.map((step) =>
+                  step.id === milestoneId
+                    ? {
+                        ...step,
+                        completed: true,
+                      }
+                    : step,
+                ),
+              }
+            : item,
+        ),
+        activity: [
+          {
+            id: uid("activity"),
+            text: `Finished quest step: ${milestone.title}`,
+            date: new Date().toISOString(),
+            xp: quest.xp,
+            stat: quest.stat,
+          },
+          ...current.activity,
+        ].slice(0, 12),
+        achievements,
+      };
+    });
+  }
+
+  function deleteQuest(questId: string) {
+    setState((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        quests: current.quests.filter((quest) => quest.id !== questId),
+      };
+    });
+  }
+
   function completeHabit(habitId: string) {
     setState((current) => {
       if (!current) {
@@ -477,6 +628,9 @@ export default function Home() {
     setAge("");
     setOnboardingStep("welcome");
     cancelEditingHabit();
+    setQuestTitle("");
+    setQuestStat("Knowledge");
+    setQuestMilestones("");
     setSelectedHabits(STARTER_HABITS.slice(0, 3).map((habit) => habit.title));
   }
 
@@ -711,8 +865,10 @@ export default function Home() {
         <nav className="mt-4 flex gap-2 overflow-x-auto rounded-2xl bg-[#f5f0e0] p-1">
           {[
             ["today", "Today"],
+            ["quests", "Quests"],
             ["progress", "Progress"],
             ["activity", "Activity"],
+            ["pricing", "Pricing"],
           ].map(([view, label]) => (
             <button
               className={`h-10 min-w-28 rounded-xl px-4 text-sm font-semibold ${
@@ -864,6 +1020,275 @@ export default function Home() {
         </section>
         ) : null}
 
+        {activeView === "quests" ? (
+          <section className="grid gap-6 py-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <div>
+              <h2 className="editorial-title text-5xl sm:text-6xl">Quests</h2>
+              <p className="mt-4 max-w-md text-base leading-7 text-[#3a3a3a]">
+                Use quests for bigger goals. Break one goal into a few simple
+                steps, then finish the steps over time.
+              </p>
+
+              <form
+                className="mt-8 grid gap-4 rounded-2xl border border-[#e5e5e5] bg-[#fffaf0] p-5"
+                onSubmit={addQuest}
+              >
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold">Quest name</span>
+                  <input
+                    className="h-12 w-full rounded-xl border border-[#e5e5e5] bg-[#fffaf0] px-4 text-sm outline-none transition placeholder:text-[#9a9a9a] focus:border-[#0a0a0a]"
+                    onChange={(event) => setQuestTitle(event.target.value)}
+                    placeholder="Example: Learn basic Spanish"
+                    value={questTitle}
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold">Life area</span>
+                  <select
+                    className="h-12 w-full appearance-none rounded-xl border border-[#e5e5e5] bg-[#fffaf0] px-4 text-sm outline-none transition focus:border-[#0a0a0a]"
+                    onChange={(event) =>
+                      setQuestStat(event.target.value as StatName)
+                    }
+                    value={questStat}
+                  >
+                    {STAT_NAMES.map((stat) => (
+                      <option key={stat}>{stat}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold">
+                    Milestones, one per line
+                  </span>
+                  <textarea
+                    className="min-h-32 w-full rounded-xl border border-[#e5e5e5] bg-[#fffaf0] px-4 py-3 text-sm outline-none transition placeholder:text-[#9a9a9a] focus:border-[#0a0a0a]"
+                    onChange={(event) => setQuestMilestones(event.target.value)}
+                    placeholder={"Finish lesson 1\nPractice three days\nHave one short conversation"}
+                    value={questMilestones}
+                  />
+                </label>
+
+                <button className="button-primary h-12 rounded-xl px-5 text-sm font-semibold">
+                  Create quest
+                </button>
+              </form>
+            </div>
+
+            <div className="grid content-start gap-4">
+              {state.quests.length === 0 ? (
+                <div className="rounded-3xl bg-[#f5f0e0] p-8">
+                  <h3 className="editorial-heading text-3xl">
+                    No quests yet.
+                  </h3>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-[#3a3a3a]">
+                    Start with one goal that would feel meaningful this month.
+                    Keep the milestones small enough to actually finish.
+                  </p>
+                </div>
+              ) : null}
+
+              {state.quests.map((quest) => {
+                const completed = quest.milestones.filter(
+                  (milestone) => milestone.completed,
+                ).length;
+                const progress = Math.round(
+                  (completed / quest.milestones.length) * 100,
+                );
+
+                return (
+                  <article
+                    className={`rounded-3xl p-5 ${STAT_CARD_CLASSES[quest.stat]}`}
+                    key={quest.id}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold opacity-75">
+                          {quest.stat} quest
+                        </p>
+                        <h3 className="mt-1 text-2xl font-semibold">
+                          {quest.title}
+                        </h3>
+                        <p className="mt-2 text-sm opacity-75">
+                          {completed}/{quest.milestones.length} steps complete
+                        </p>
+                      </div>
+                      <button
+                        className="h-10 rounded-xl bg-white/25 px-4 text-sm font-semibold"
+                        onClick={() => deleteQuest(quest.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+
+                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/25">
+                      <div
+                        className="h-full rounded-full bg-white"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+
+                    <div className="mt-5 grid gap-2">
+                      {quest.milestones.map((milestone) => (
+                        <div
+                          className="flex items-center justify-between gap-3 rounded-2xl bg-white/20 p-3"
+                          key={milestone.id}
+                        >
+                          <span
+                            className={`text-sm font-semibold ${
+                              milestone.completed ? "line-through opacity-60" : ""
+                            }`}
+                          >
+                            {milestone.title}
+                          </span>
+                          <button
+                            className="h-9 shrink-0 rounded-xl bg-white px-3 text-sm font-semibold text-[#0a0a0a] disabled:bg-white/30 disabled:text-current"
+                            disabled={milestone.completed}
+                            onClick={() =>
+                              completeQuestMilestone(quest.id, milestone.id)
+                            }
+                          >
+                            {milestone.completed ? "Done" : `+${quest.xp}`}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {activeView === "pricing" ? (
+          <section className="py-8">
+            <div className="mb-8 max-w-3xl">
+              <p className="quiet-label text-[#6a6a6a]">Simple pricing</p>
+              <h2 className="editorial-title mt-4 text-5xl sm:text-6xl">
+                Pick the plan that keeps your progress moving.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-[#3a3a3a]">
+                A classic three-tier setup for solo tracking, premium daily
+                systems, and shared accountability.
+              </p>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-3">
+              {[
+                {
+                  name: "Starter",
+                  price: "$0",
+                  cadence: "forever",
+                  description: "For trying the daily loop and tracking a few habits.",
+                  features: [
+                    "3 active habits",
+                    "Daily completion tracking",
+                    "Basic life-area levels",
+                    "Local browser storage",
+                  ],
+                  action: "Start free",
+                  featured: false,
+                },
+                {
+                  name: "Premium",
+                  price: "$8",
+                  cadence: "per month",
+                  description: "For a richer system with deeper streaks and planning.",
+                  features: [
+                    "Unlimited habits",
+                    "Advanced streak insights",
+                    "Weekly review prompts",
+                    "Priority feature access",
+                  ],
+                  action: "Upgrade to Premium",
+                  featured: true,
+                },
+                {
+                  name: "Team",
+                  price: "$18",
+                  cadence: "per month",
+                  description: "For partners, families, or small accountability groups.",
+                  features: [
+                    "Shared progress boards",
+                    "Group milestones",
+                    "Private member profiles",
+                    "Exportable activity history",
+                  ],
+                  action: "Create a team",
+                  featured: false,
+                },
+              ].map((plan) => (
+                <article
+                  className={`relative flex min-h-[30rem] flex-col rounded-2xl p-6 ${
+                    plan.featured
+                      ? "bg-[#1a3a3a] text-white"
+                      : "border border-[#e5e5e5] bg-[#fffaf0] text-[#0a0a0a]"
+                  }`}
+                  key={plan.name}
+                >
+                  {plan.featured ? (
+                    <span className="absolute right-5 top-5 rounded-full bg-[#e8b94a] px-3 py-1 text-xs font-semibold text-[#0a0a0a]">
+                      Popular
+                    </span>
+                  ) : null}
+
+                  <div>
+                    <h3 className="text-2xl font-semibold">{plan.name}</h3>
+                    <div className="mt-6 flex items-end gap-2">
+                      <span className="editorial-number text-6xl">
+                        {plan.price}
+                      </span>
+                      <span
+                        className={`pb-2 text-sm ${
+                          plan.featured ? "text-white/65" : "text-[#6a6a6a]"
+                        }`}
+                      >
+                        {plan.cadence}
+                      </span>
+                    </div>
+                    <p
+                      className={`mt-5 text-sm leading-6 ${
+                        plan.featured ? "text-white/72" : "text-[#3a3a3a]"
+                      }`}
+                    >
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  <ul className="mt-8 grid gap-3">
+                    {plan.features.map((feature) => (
+                      <li className="flex items-start gap-3 text-sm" key={feature}>
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-bold ${
+                            plan.featured
+                              ? "bg-white text-[#1a3a3a]"
+                              : "bg-[#f5f0e0] text-[#0a0a0a]"
+                          }`}
+                        >
+                          on
+                        </span>
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    className={`mt-auto h-11 rounded-xl px-5 text-sm font-semibold ${
+                      plan.featured
+                        ? "button-on-dark bg-white text-[#0a0a0a]"
+                        : "button-primary"
+                    }`}
+                  >
+                    {plan.action}
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {activeView !== "pricing" && activeView !== "quests" ? (
         <section
           className={`grid gap-6 py-6 ${
             activeView === "today" ? "" : "lg:grid-cols-2"
@@ -1035,6 +1460,7 @@ export default function Home() {
             ) : null}
           </aside>
         </section>
+        ) : null}
       </div>
     </main>
   );
